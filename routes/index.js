@@ -29,4 +29,20 @@ router.get('/api/inventory/aggregate/groupby', async function (req, res) {
 
 });
 
+/* Ajax-Pagination */
+router.get('/api/inventory', async function (req, res) {
+
+  var perPage = Math.max(req.query.perPage, 2) || 2;
+
+  var results = await db.collection("inventory").find({type:req.query.type}, {
+    limit: perPage,
+    skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
+  }).toArray();
+
+  var pages = Math.ceil(await db.collection("inventory").count({type:req.query.type}) / perPage);
+
+  return res.json({ inventory: results, pages: pages })
+
+});
+
 module.exports = router;
