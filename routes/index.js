@@ -101,4 +101,30 @@ router.delete('/api/inventory/:id', async function (req, res) {
 
 });
 
+/* Searching inventory */
+router.get('/api/search/inventory', async function (req, res) {
+
+  var whereClause = {};
+
+  if (req.query.keyword) {
+    whereClause = {$or:[
+      {title: { $regex: req.query.keyword }},
+      {description:{ $regex: req.query.keyword }}
+    ]}
+
+  }
+
+  var perPage = Math.max(req.query.perPage, 2) || 2;
+
+  var results = await db.collection("inventory").find(whereClause, {
+    limit: perPage,
+    skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
+  }).toArray();
+
+  var pages = Math.ceil(await db.collection("inventory").count(whereClause) / perPage);
+  
+  return res.json({ inventory: results, pages: pages });
+
+});
+
 module.exports = router;
