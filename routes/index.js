@@ -75,6 +75,9 @@ router.put('/api/inventory/:id', async function (req, res) {
     return res.status(404).send('Unable to find the requested resource!');
 
   req.body.year = parseInt(req.body.year);
+  req.body.quantity = parseInt(req.body.quantity);
+  req.body.amount = parseInt(req.body.amount);
+  req.body.unitPrice = parseInt(req.body.unitPrice);
 
   var result = await db.collection("inventory").findOneAndReplace(
     { _id: ObjectId(req.params.id) }, req.body
