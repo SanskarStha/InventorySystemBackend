@@ -53,8 +53,8 @@ router.post('/api/inventory', async function (req, res) {
   if (req.body.amount) req.body.amount = parseInt(req.body.amount);
   if (req.body.unitPrice) req.body.unitPrice = parseInt(req.body.unitPrice);
 
-  let result = await db.collection("inventory").insertOne(req.body);
-  res.status(201).json({ id: result.insertedId });
+  await db.collection("inventory").insertOne(req.body);
+  res.send("Item added.");
 
 });
 
