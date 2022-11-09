@@ -15,4 +15,18 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
+// GroupBy
+router.get('/api/inventory/aggregate/groupby', async function (req, res) {
+
+  const pipeline = [
+    { $match: { type: { $ne: null } } },
+    { $group: { _id: "$type", count: { $sum: 1 } } }
+  ];
+
+  const results = await db.collection("inventory").aggregate(pipeline).toArray();
+
+  return res.json(results);
+
+});
+
 module.exports = router;
