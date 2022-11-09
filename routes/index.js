@@ -87,4 +87,18 @@ router.put('/api/inventory/:id', async function (req, res) {
 
 });
 
+// Delete a single item
+router.delete('/api/inventory/:id', async function (req, res) {
+
+  if (!ObjectId.isValid(req.params.id))
+    return res.status(404).send('Unable to find the requested resource!');
+
+  let result = await db.collection("inventory").findOneAndDelete({ _id: ObjectId(req.params.id) })
+
+  if (!result.value) return res.status(404).send('Unable to find the requested resource!');
+
+  return res.status(204).send();
+
+});
+
 module.exports = router;
