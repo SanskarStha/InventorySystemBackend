@@ -45,4 +45,13 @@ router.get('/api/inventory', async function (req, res) {
 
 });
 
+/* Insert an item */
+router.post('/api/inventory', async function (req, res) {
+
+  req.body.year = parseInt(req.body.year)
+  let result = await db.collection("inventory").insertOne(req.body);
+  res.status(201).json({ id: result.insertedId });
+
+});
+
 module.exports = router;
