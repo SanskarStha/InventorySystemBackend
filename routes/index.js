@@ -3,7 +3,8 @@ var router = express.Router();
 var ObjectId = require('mongodb').ObjectId;
 var MongoClient = require('mongodb').MongoClient;
 var url = 'mongodb://mondaysafternooninventoryassignment:fAxdi5s9zTiCSMLdbAKchzzAPs3g6bYnXPJIcMGVtVm5CBrrkQ55iiVrrazcnMkz6RgHeUnA4Ls8ACDbdcaf2g==@mondaysafternooninventoryassignment.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@mondaysafternooninventoryassignment@';
-
+var jwt = require('jsonwebtoken');
+const auth = require("../middlewares/auth");
 var db;
 
 MongoClient.connect(url, function (err, client) {
@@ -11,7 +12,7 @@ MongoClient.connect(url, function (err, client) {
   console.log("DB connected");
 });
 /* GET home page. */
-router.get('/', function(req, res, next) {
+router.get('/', function (req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
@@ -34,12 +35,12 @@ router.get('/api/inventory', async function (req, res) {
 
   var perPage = Math.max(req.query.perPage, 2) || 2;
 
-  var results = await db.collection("inventory").find({type:req.query.type}, {
+  var results = await db.collection("inventory").find({ type: req.query.type }, {
     limit: perPage,
     skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
   }).toArray();
 
-  var pages = Math.ceil(await db.collection("inventory").count({type:req.query.type}) / perPage);
+  var pages = Math.ceil(await db.collection("inventory").count({ type: req.query.type }) / perPage);
 
   return res.json({ inventory: results, pages: pages })
 
@@ -114,10 +115,12 @@ router.get('/api/search/inventory', async function (req, res) {
   var whereClause = {};
 
   if (req.query.keyword) {
-    whereClause = {$or:[
-      {title: { $regex: req.query.keyword }},
-      {description:{ $regex: req.query.keyword }}
-    ]}
+    whereClause = {
+      $or: [
+        { title: { $regex: req.query.keyword } },
+        { description: { $regex: req.query.keyword } }
+      ]
+    }
 
   }
 
@@ -129,8 +132,35 @@ router.get('/api/search/inventory', async function (req, res) {
   }).toArray();
 
   var pages = Math.ceil(await db.collection("inventory").count(whereClause) / perPage);
-  
+
   return res.json({ inventory: results, pages: pages });
+
+});
+
+/* Login */
+
+router.post("/api/login", async function (req, res) {
+
+  let user = await db.collection("user").findOne({password:req.body.password})
+
+  if (user) {
+
+    // const user = {};
+
+    const token = jwt.sign(
+      user, "process.env.TOKEN_KEY", {
+      expiresIn: "2h",
+    }
+    );
+
+    user.token = token;
+
+    return res.json(user);
+
+  } else {
+    res.status(401).send("Invalid Credentials");
+
+  }
 
 });
 
