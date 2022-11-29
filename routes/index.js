@@ -141,7 +141,7 @@ router.get('/api/search/inventory', async function (req, res) {
 
 router.post("/api/login", async function (req, res) {
 
-  let user = await db.collection("user").findOne({password:req.body.password})
+  let user = await db.collection("user").findOne({email: req.body.email,  password: req.body.password })
 
   if (user) {
 
@@ -161,6 +161,22 @@ router.post("/api/login", async function (req, res) {
     res.status(401).send("Invalid Credentials");
 
   }
+
+});
+
+/* Ajax-Pagination */
+router.get('/api/user', async function (req, res) {
+
+  var perPage = Math.max(req.query.perPage, 12) || 12;
+
+  var results = await db.collection("user").find({}, {
+    limit: perPage,
+    skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
+  }).toArray();
+
+  var pages = Math.ceil(await db.collection("user").count() / perPage);
+
+  return res.json({ users: results, pages: pages })
 
 });
 
