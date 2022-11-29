@@ -5,6 +5,7 @@ var MongoClient = require('mongodb').MongoClient;
 var url = 'mongodb://mondaysafternooninventoryassignment:fAxdi5s9zTiCSMLdbAKchzzAPs3g6bYnXPJIcMGVtVm5CBrrkQ55iiVrrazcnMkz6RgHeUnA4Ls8ACDbdcaf2g==@mondaysafternooninventoryassignment.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@mondaysafternooninventoryassignment@';
 var jwt = require('jsonwebtoken');
 const auth = require("../middlewares/auth");
+const { v4: uuidv4 } = require('uuid');
 var db;
 
 MongoClient.connect(url, function (err, client) {
@@ -35,13 +36,51 @@ router.get('/api/inventory', async function (req, res) {
 
   var perPage = Math.max(req.query.perPage, 2) || 2;
 
-  var results = await db.collection("inventory").find({ type: req.query.type }, {
-    limit: perPage,
-    skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
-  }).toArray();
+  // var results = await db.collection("inventory").find({ type: req.query.type }, {
+  //   limit: perPage,
+  //   skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
+  // }).toArray();
+  var pipelines = [
+    { $match: { type: req.query.type } },
+    {
+      $lookup:
+      {
+        from: "user",
+        localField: "borrow",
+        foreignField: "_id",
+        as: "borrow"
+      }
+    },
+    {
+      $skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
+    },
+    {
+      $limit: perPage,
+    }
+  ];
 
-  var pages = Math.ceil(await db.collection("inventory").count({ type: req.query.type }) / perPage);
-
+  var results = await db.collection("inventory").aggregate(pipelines).toArray();
+  // var results = await db.collection("inventory").find({ type: req.query.type }, {
+  //   limit: perPage,
+  //   skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
+  // }).toArray();
+  var countpipelines = [
+    { $match: { type: req.query.type } },
+    {
+      $lookup:
+      {
+        from: "users",
+        localField: "borrow",
+        foreignField: "_id",
+        as: "borrow"
+      }
+    },
+    {
+      $count: "_id"
+    }
+  ];
+  var pages = Math.ceil((await db.collection("inventory").aggregate(countpipelines).toArray())[0]._id);
+console.log(pages);
   return res.json({ inventory: results, pages: pages })
 
 });
@@ -155,6 +194,8 @@ router.post("/api/login", async function (req, res) {
 
     user.token = token;
 
+    console.log(user.token)
+
     return res.json(user);
 
   } else {
@@ -230,6 +271,48 @@ router.delete('/api/user/:id', async function (req, res) {
   if (!result.value) return res.status(404).send('Unable to find the requested resource!');
 
   return res.status(204).send();
+
+});
+
+// Updating borrow for single user - Ajax
+router.put('/api/user/borrow/:id', auth, async function (req, res) {
+
+  if (!ObjectId.isValid(req.params.id))
+    return res.status(404).send('Unable to find the requested resource!');
+
+  var result = await db.collection("inventory").findOne({ _id: ObjectId(req.params.id) });
+console.log(result);
+  result.borrow = ObjectId(req.user._id);
+
+  var result = await db.collection("inventory").findOneAndReplace(
+    { _id: ObjectId(req.params.id) }, result
+  );
+
+  if (!result.value)
+    return res.status(404).send('Unable to find the requested resource!');
+
+  res.send("Borrow updated.");
+
+});
+
+// Updating return for single user - Ajax
+router.put('/api/user/return/:id', auth, async function (req, res) {
+
+  if (!ObjectId.isValid(req.params.id))
+    return res.status(404).send('Unable to find the requested resource!');
+
+  var result = await db.collection("inventory").findOne({ _id: ObjectId(req.params.id) });
+console.log(result);
+  result.borrow = null;
+
+  var result = await db.collection("inventory").findOneAndReplace(
+    { _id: ObjectId(req.params.id) }, result
+  );
+
+  if (!result.value)
+    return res.status(404).send('Unable to find the requested resource!');
+
+  res.send("Item returned.");
 
 });
 
