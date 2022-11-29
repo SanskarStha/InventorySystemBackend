@@ -40,45 +40,89 @@ router.get('/api/inventory', async function (req, res) {
   //   limit: perPage,
   //   skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
   // }).toArray();
-  var pipelines = [
-    { $match: { type: req.query.type } },
-    {
-      $lookup:
+  if (req.query.type == "Book" || req.query.type == "Game") {
+    var pipelines = [
+      { $match: { type: req.query.type } },
       {
-        from: "user",
-        localField: "borrow",
-        foreignField: "_id",
-        as: "borrow"
+        $lookup:
+        {
+          from: "user",
+          localField: "borrow",
+          foreignField: "_id",
+          as: "borrow"
+        }
+      },
+      {
+        $skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
+      },
+      {
+        $limit: perPage,
       }
-    },
-    {
-      $skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
-    },
-    {
-      $limit: perPage,
-    }
-  ];
+    ];
+  } else if (req.query.type == "Gift" || req.query.type == "Material") {
+    var pipelines = [
+      { $match: { type: req.query.type } },
+      {
+        $lookup:
+        {
+          from: "join",
+          localField: "_id",
+          foreignField: "itemId",
+          as: "consume"
+        }
+      },
+      {
+        $skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
+      },
+      {
+        $limit: perPage,
+      }
+    ];
+  }
+  
 
   var results = await db.collection("inventory").aggregate(pipelines).toArray();
   // var results = await db.collection("inventory").find({ type: req.query.type }, {
   //   limit: perPage,
   //   skip: perPage * (Math.max(req.query.page - 1, 0) || 0)
   // }).toArray();
-  var countpipelines = [
-    { $match: { type: req.query.type } },
-    {
-      $lookup:
+  if (req.query.type == "Book" || req.query.type == "Game") {
+
+    var countpipelines = [
+      { $match: { type: req.query.type } },
       {
-        from: "users",
-        localField: "borrow",
-        foreignField: "_id",
-        as: "borrow"
+        $lookup:
+        {
+          from: "user",
+          localField: "borrow",
+          foreignField: "_id",
+          as: "borrow"
+        }
+      },
+      {
+        $count: "_id"
       }
-    },
-    {
-      $count: "_id"
-    }
-  ];
+    ];
+
+  } else if (req.query.type == "Gift" || req.query.type == "Material") {
+    var countpipelines = [
+      { $match: { type: req.query.type } },
+      {
+        $lookup:
+        {
+          from: "join",
+          localField: "_id",
+          foreignField: "itemId",
+          as: "consume"
+        }
+      },
+      {
+        $count: "_id"
+      }
+    ];
+
+  }
+ 
   var pages = Math.ceil((await db.collection("inventory").aggregate(countpipelines).toArray())[0]._id);
 console.log(pages);
   return res.json({ inventory: results, pages: pages })
@@ -313,6 +357,18 @@ console.log(result);
     return res.status(404).send('Unable to find the requested resource!');
 
   res.send("Item returned.");
+
+});
+
+/* Insert Consume record */
+router.post('/api/user/consume/:id', auth, async function (req, res) {
+
+console.log("hfdskj")
+
+  await db.collection("join").insertOne({ userId: ObjectId(req.user._id), itemId: ObjectId(req.params.id) });
+
+  // db.collection("join").count({itemId: req.params.id})
+  res.send("Item consumed.");
 
 });
 
