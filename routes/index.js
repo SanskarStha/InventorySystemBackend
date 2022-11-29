@@ -5,7 +5,7 @@ var MongoClient = require('mongodb').MongoClient;
 var url = 'mongodb://mondaysafternooninventoryassignment:fAxdi5s9zTiCSMLdbAKchzzAPs3g6bYnXPJIcMGVtVm5CBrrkQ55iiVrrazcnMkz6RgHeUnA4Ls8ACDbdcaf2g==@mondaysafternooninventoryassignment.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@mondaysafternooninventoryassignment@';
 var jwt = require('jsonwebtoken');
 const auth = require("../middlewares/auth");
-const { v4: uuidv4 } = require('uuid');
+const admin = require("../middlewares/auth_admin");
 var db;
 
 MongoClient.connect(url, function (err, client) {
@@ -32,7 +32,7 @@ router.get('/api/inventory/aggregate/groupby', async function (req, res) {
 });
 
 /* Ajax-Pagination */
-router.get('/api/inventory', async function (req, res) {
+router.get('/api/inventory', auth, async function (req, res) {
 
   var perPage = Math.max(req.query.perPage, 2) || 2;
 
@@ -130,7 +130,7 @@ console.log(pages);
 });
 
 /* Insert an item */
-router.post('/api/inventory', async function (req, res) {
+router.post('/api/inventory', auth, async function (req, res) {
 
   if (req.body.year) req.body.year = parseInt(req.body.year);
   if (req.body.quantity) req.body.quantity = parseInt(req.body.quantity);
@@ -143,7 +143,7 @@ router.post('/api/inventory', async function (req, res) {
 });
 
 // Form for updating a single item 
-router.get('/api/inventory/:id', async function (req, res) {
+router.get('/api/inventory/:id', auth, async function (req, res) {
 
   if (!ObjectId.isValid(req.params.id))
     return res.status(404).send('Unable to find the requested resource!');
@@ -157,7 +157,7 @@ router.get('/api/inventory/:id', async function (req, res) {
 });
 
 // Updating a single Item - Ajax
-router.put('/api/inventory/:id', async function (req, res) {
+router.put('/api/inventory/:id', auth, async function (req, res) {
 
   if (!ObjectId.isValid(req.params.id))
     return res.status(404).send('Unable to find the requested resource!');
@@ -179,7 +179,7 @@ router.put('/api/inventory/:id', async function (req, res) {
 });
 
 // Delete a single item
-router.delete('/api/inventory/:id', async function (req, res) {
+router.delete('/api/inventory/:id', auth, async function (req, res) {
 
   if (!ObjectId.isValid(req.params.id))
     return res.status(404).send('Unable to find the requested resource!');
@@ -193,7 +193,7 @@ router.delete('/api/inventory/:id', async function (req, res) {
 });
 
 /* Searching inventory */
-router.get('/api/search/inventory', async function (req, res) {
+router.get('/api/search/inventory', auth, async function (req, res) {
 
   var whereClause = {};
 
@@ -250,7 +250,7 @@ router.post("/api/login", async function (req, res) {
 });
 
 /* Ajax-Pagination */
-router.get('/api/user', async function (req, res) {
+router.get('/api/user', auth, admin, async function (req, res) {
 
   var perPage = Math.max(req.query.perPage, 12) || 12;
 
@@ -266,7 +266,7 @@ router.get('/api/user', async function (req, res) {
 });
 
 /* Insert a user */
-router.post('/api/user', async function (req, res) {
+router.post('/api/user', auth, admin, async function (req, res) {
 
   await db.collection("user").insertOne(req.body);
   res.send("User added.");
@@ -274,7 +274,7 @@ router.post('/api/user', async function (req, res) {
 });
 
 // Form for updating a single user 
-router.get('/api/user/:id', async function (req, res) {
+router.get('/api/user/:id', auth, admin, async function (req, res) {
 
   if (!ObjectId.isValid(req.params.id))
     return res.status(404).send('Unable to find the requested resource!');
@@ -288,7 +288,7 @@ router.get('/api/user/:id', async function (req, res) {
 });
 
 // Updating a single user - Ajax
-router.put('/api/user/:id', async function (req, res) {
+router.put('/api/user/:id', auth, admin, async function (req, res) {
 
   if (!ObjectId.isValid(req.params.id))
     return res.status(404).send('Unable to find the requested resource!');
@@ -305,7 +305,7 @@ router.put('/api/user/:id', async function (req, res) {
 });
 
 // Delete a single user
-router.delete('/api/user/:id', async function (req, res) {
+router.delete('/api/user/:id', auth, admin, async function (req, res) {
 
   if (!ObjectId.isValid(req.params.id))
     return res.status(404).send('Unable to find the requested resource!');
@@ -335,7 +335,7 @@ console.log(result);
   if (!result.value)
     return res.status(404).send('Unable to find the requested resource!');
 
-  res.send("Borrow updated.");
+  res.send("Item borrowed.");
 
 });
 
@@ -363,7 +363,6 @@ console.log(result);
 /* Insert Consume record */
 router.post('/api/user/consume/:id', auth, async function (req, res) {
 
-console.log("hfdskj")
 
   await db.collection("join").insertOne({ userId: ObjectId(req.user._id), itemId: ObjectId(req.params.id) });
 
