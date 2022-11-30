@@ -2,7 +2,7 @@
 
 const admin = (req, res, next) => {
 
-    if (req.user.type=='admin') return next();
+    if (req.user.type=='admin user') return next();
     // const token =
     //     req.body.token || req.query.token || req.headers["x-access-token"];
 
